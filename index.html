@@ -4,18 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Competição por Grupos</title>
-    <script src="https://unpkg.com/tailwindcss@3.4.0/lib/index.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'poppins': ['Poppins', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
         body { 
@@ -518,13 +507,16 @@
         window.deleteDoc = deleteDoc;
 
         // Update Firebase status
-        document.getElementById('firebaseStatus').className = 'firebase-status firebase-connected';
-        document.getElementById('firebaseStatus').innerHTML = '✅ Firebase Conectado';
-
-        // Auto-hide status after 3 seconds
-        setTimeout(() => {
-            document.getElementById('firebaseStatus').style.opacity = '0';
-        }, 3000);
+        const statusElement = document.getElementById('firebaseStatus');
+        if (statusElement) {
+            statusElement.className = 'firebase-status firebase-connected';
+            statusElement.innerHTML = '✅ Firebase Conectado';
+            
+            // Auto-hide status after 3 seconds
+            setTimeout(() => {
+                statusElement.style.opacity = '0';
+            }, 3000);
+        }
 
         console.log('Firebase initialized successfully!');
     </script>
@@ -1449,9 +1441,6 @@
             }
         }
 
-        // Initialize
-        generateGroupInputs();
-
         // Make functions available globally for onclick handlers
         window.saveCompetition = saveCompetition;
         window.loadCompetition = loadCompetition;
@@ -1477,6 +1466,11 @@
         window.assignPoints = assignPoints;
         window.undoLastScore = undoLastScore;
         window.resetCompetition = resetCompetition;
+
+        // Initialize after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            generateGroupInputs();
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9788013b907ed97a',t:'MTc1Njc2MzY1Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9788066f5211f1d5',t:'MTc1Njc2Mzg2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
