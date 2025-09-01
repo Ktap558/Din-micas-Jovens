@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Competição por Grupos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: #f0f4f8;
+            min-height: 100vh;
+            font-size: 18px;
+        }
+        
+        .simple-card {
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .big-button {
+            font-size: 20px;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .big-button:hover {
+            transform: scale(1.02);
+        }
+        
+        .primary-btn {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background: #2563eb;
+        }
+        
+        .success-btn {
+            background: #10b981;
+            color: white;
+        }
+        
+        .success-btn:hover {
+            background: #059669;
+        }
+        
+        .danger-btn {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .danger-btn:hover {
+            background: #dc2626;
+        }
+        
+        .warning-btn {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .warning-btn:hover {
+            background: #d97706;
+        }
+        
+        .simple-input {
+            font-size: 18px;
+            padding: 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            width: 100%;
+        }
+        
+        .simple-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        
+        .large-text {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .extra-large-text {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        .mobile-optimized {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .firebase-connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .firebase-disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .firebase-loading {
+            background: #f59e0b;
+            color: white;
+        }
+    </style>
+</head>
+<body class="mobile-optimized" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <!-- Firebase Status Indicator -->
+    <div id="firebaseStatus" class="firebase-status firebase-loading">
+        🔄 Conectando ao Firebase...
+    </div>
+
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="simple-card p-6 mb-6">
+                <div class="text-6xl mb-4">🏆</div>
+                <h1 class="extra-large-text text-gray-800 mb-3">Sistema de Competição</h1>
+                <p class="large-text text-gray-600">Gerencie grupos e pontuações</p>
+                <div class="mt-4 flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onclick="loadCompetition()" id="loadBtn"
+                            class="big-button primary-btn mobile-optimized">
+                        📥 CARREGAR COMPETIÇÃO
+                    </button>
+                    <button onclick="saveCompetition()" id="saveBtn"
+                            class="big-button success-btn mobile-optimized" disabled>
+                        💾 SALVAR COMPETIÇÃO
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Phase -->
+        <div id="setupPhase" class="simple-card p-8 mb-8">
+            <h2 class="extra-large-text text-gray-800 mb-8 text-center">
+                📋 Configuração Inicial
+            </h2>
+            
+            <!-- Competition Name -->
+            <div class="mb-8">
+                <label class="block large-text text-gray-700 mb-4 font-semibold">Nome da Competição</label>
+                <input type="text" id="competitionName" placeholder="Ex: Gincana Jovens 2024" 
+                       class="simple-input text-xl">
+            </div>
+            
+            <!-- Group Registration -->
+            <div class="mb-8">
+                <label class="block large-text text-gray-700 mb-4 font-semibold">Quantos grupos participarão?</label>
+                <div class="flex flex-col gap-4">
+                    <input type="number" id="groupCount" min="2" max="20" value="5" 
+                           class="simple-input text-center text-2xl font-bold">
+                    <button onclick="generateGroupInputs()" 
+                            class="big-button primary-btn mobile-optimized">
+                        ✨ Gerar Campos para os Grupos
+                    </button>
+                </div>
+            </div>
+
+            <div id="groupInputs" class="grid grid-cols-1 gap-4 mb-8"></div>
+
+            <button onclick="startCompetition()" id="startBtn" 
+                    class="w-full big-button success-btn disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized"
+                    disabled>
+                🚀 INICIAR COMPETIÇÃO
+            </button>
+        </div>
+
+        <!-- Competition Phase -->
+        <div id="competitionPhase" class="hidden">
+            <!-- Biblical Games Selection -->
+            <div class="simple-card p-8 mb-8">
+                <h2 class="extra-large-text text-gray-800 mb-8 text-center">
+                    🎯 Brincadeiras Bíblicas
+                </h2>
+                <div class="grid grid-cols-1 gap-6">
+                    <button onclick="startBiblicalGame(1)" 
+                            class="big-button mobile-optimized" style="background: #8b5cf6; color: white;">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">📖</div>
+                            <div class="text-xl font-bold">Está escrito... ou não está?</div>
+                            <div class="text-lg mt-1">20 pontos</div>
+                        </div>
+                    </button>
+                    <button onclick="startBiblicalGame(2)" 
+                            class="big-button mobile-optimized" style="background: #10b981; color: white;">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">🎤</div>
+                            <div class="text-xl font-bold">Show da Bíblia</div>
+                            <div class="text-lg mt-1">15 pontos</div>
+                        </div>
+                    </button>
+                    <button onclick="startBiblicalGame(3)" 
+                            class="big-button mobile-optimized" style="background: #f59e0b; color: white;">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">🐑</div>
+                            <div class="text-xl font-bold">Quem é o Pastor?</div>
+                            <div class="text-lg mt-1">25 pontos</div>
+                        </div>
+                    </button>
+                    <button onclick="startBiblicalGame(4)" 
+                            class="big-button mobile-optimized" style="background: #ef4444; color: white;">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">📚</div>
+                            <div class="text-xl font-bold">Índice da Bíblia</div>
+                            <div class="text-lg mt-1">Até 66 pontos</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game 1: Está escrito ou não está -->
+            <div id="game1" class="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 hidden slide-up">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-2xl">📖</span> Está escrito... ou não está?
+                    <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold ml-auto">20 pts</span>
+                </h3>
+                <div class="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 mb-4 backdrop-blur-sm border border-white/20">
+                    <p class="text-white/90 text-sm mb-2">📋 Instruções: Identifique se a frase está ou não na Bíblia</p>
+                    <div class="text-white font-medium" id="currentPhrase"></div>
+                </div>
+                <div class="flex gap-3 mb-4">
+                    <button onclick="answerPhrase(true)" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-green-800 transition-all font-semibold mobile-optimized">
+                        ✅ Está na Bíblia
+                    </button>
+                    <button onclick="answerPhrase(false)" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 transition-all font-semibold mobile-optimized">
+                        ❌ Não está na Bíblia
+                    </button>
+                </div>
+                <div class="text-center text-white/70 text-sm">
+                    Pergunta <span id="phraseCounter">1</span> de 20
+                </div>
+                <div id="phraseResult" class="mt-4 p-3 rounded-xl hidden"></div>
+                <button onclick="endGame1()" class="w-full btn-gradient text-white px-6 py-3 rounded-xl font-semibold mt-4 mobile-optimized">
+                    🏁 Finalizar Brincadeira
+                </button>
+            </div>
+
+            <!-- Game 2: Show da Bíblia -->
+            <div id="game2" class="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 hidden slide-up">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-2xl">🎤</span> Show da Bíblia
+                    <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold ml-auto">15 pts</span>
+                </h3>
+                <div class="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 mb-4 backdrop-blur-sm border border-white/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-white/90 text-sm">Nível: <span id="currentLevel">Fácil</span></span>
+                        <span class="text-white/90 text-sm">Pergunta <span id="questionCounter">1</span> de 15</span>
+                    </div>
+                    <div class="text-white font-medium mb-4" id="currentQuestion"></div>
+                    <div id="questionOptions" class="space-y-2"></div>
+                </div>
+                <div id="questionResult" class="mt-4 p-3 rounded-xl hidden"></div>
+                <button onclick="endGame2()" class="w-full btn-gradient text-white px-6 py-3 rounded-xl font-semibold mt-4 mobile-optimized">
+                    🏁 Finalizar Brincadeira
+                </button>
+            </div>
+
+            <!-- Game 3: Quem é o Pastor -->
+            <div id="game3" class="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 hidden slide-up">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-2xl">🐑</span> Quem é o Pastor do Meu Rebanho?
+                    <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold ml-auto">25 pts</span>
+                </h3>
+                <div class="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 mb-4 backdrop-blur-sm border border-white/20">
+                    <p class="text-white/90 text-sm mb-3">📋 Instruções:</p>
+                    <ul class="text-white/80 text-sm space-y-1 list-disc list-inside">
+                        <li>Um investigador de cada grupo sai da sala</li>
+                        <li>O dirigente escolhe secretamente quem é o Pastor</li>
+                        <li>O investigador volta e tenta descobrir quem é o Pastor</li>
+                        <li>Cada ovelha descoberta = +1 ponto</li>
+                        <li>Descobrir o Pastor finaliza a brincadeira</li>
+                    </ul>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-white/90 mb-2">Grupo Investigador:</label>
+                        <select id="investigatorGroup" class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-white/30 focus:border-white/40 backdrop-blur-sm">
+                            <option value="">Selecione o grupo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/90 mb-2">Pontos conquistados pelo investigador:</label>
+                        <input type="number" id="shepherdPoints" value="0" min="0" max="25" 
+                               class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-white/30 focus:border-white/40 backdrop-blur-sm">
+                    </div>
+                </div>
+                <button onclick="endGame3()" class="w-full btn-gradient text-white px-6 py-3 rounded-xl font-semibold mt-4 mobile-optimized">
+                    🏁 Finalizar Brincadeira
+                </button>
+            </div>
+
+            <!-- Game 4: Índice da Bíblia -->
+            <div id="game4" class="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 hidden slide-up">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-2xl">📚</span> Índice da Bíblia
+                    <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full text-sm font-bold ml-auto">66 pts máx</span>
+                </h3>
+                <div class="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 mb-4 backdrop-blur-sm border border-white/20">
+                    <p class="text-white/90 text-sm mb-3">📋 Instruções: O participante deve falar todos os livros da Bíblia em ordem</p>
+                    <p class="text-white/80 text-xs mb-4">💡 Clique nos livros que ele acertar | Cada acerto = 1 ponto</p>
+                    
+                    <div class="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 mb-4 border border-blue-500/30">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white font-semibold">Pontuação Atual:</span>
+                            <span class="text-green-400 font-bold text-xl" id="currentScore">0 pontos</span>
+                        </div>
+                        <div class="w-full bg-white/20 rounded-full h-2 mt-2">
+                            <div class="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300" id="progressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Old Testament -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        <span class="text-xl">📜</span> Antigo Testamento (39 livros)
+                    </h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" id="oldTestamentBooks"></div>
+                </div>
+                
+                <!-- New Testament -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        <span class="text-xl">✨</span> Novo Testamento (27 livros)
+                    </h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" id="newTestamentBooks"></div>
+                </div>
+                
+                <button onclick="endGame4()" class="w-full btn-gradient text-white px-6 py-3 rounded-xl font-semibold mt-4 mobile-optimized">
+                    🏁 Finalizar Brincadeira
+                </button>
+            </div>
+
+            <!-- Visitor Points System -->
+            <div class="simple-card p-8 mb-8">
+                <h2 class="extra-large-text text-gray-800 mb-8 text-center">
+                    👥 Sistema de Visitantes
+                </h2>
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
+                    <p class="large-text text-gray-700 text-center mb-4">
+                        <strong>Cada visitante trazido = +1 ponto para a equipe!</strong>
+                    </p>
+                    <p class="text-lg text-gray-600 text-center">
+                        💡 Exemplo: Se uma equipe trouxe 3 visitantes, ela ganha 3 pontos extras
+                    </p>
+                </div>
+                
+                <div class="space-y-6">
+                    <h3 class="large-text text-gray-800 font-semibold text-center mb-4">
+                        Registrar Visitantes por Equipe:
+                    </h3>
+                    <div id="visitorInputs" class="space-y-4"></div>
+                    <button onclick="addVisitorPoints()" 
+                            class="w-full big-button success-btn mobile-optimized">
+                        ✅ ADICIONAR PONTOS DOS VISITANTES
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Game Creation -->
+            <div class="simple-card p-8 mb-8">
+                <h2 class="extra-large-text text-gray-800 mb-8 text-center">
+                    🎮 Brincadeira Personalizada
+                </h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block large-text text-gray-700 mb-3 font-semibold">Nome da Brincadeira</label>
+                        <input type="text" id="gameName" placeholder="Ex: Corrida de saco" 
+                               class="simple-input">
+                    </div>
+                    <div>
+                        <label class="block large-text text-gray-700 mb-3 font-semibold">Pontos para o Vencedor</label>
+                        <input type="number" id="gamePoints" value="10" min="1" max="100"
+                               class="simple-input text-center text-2xl font-bold">
+                    </div>
+                    <button onclick="createGame()" 
+                            class="w-full big-button primary-btn mobile-optimized">
+                        ➕ CRIAR BRINCADEIRA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Game -->
+            <div id="currentGame" class="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 hidden slide-up">
+                <h3 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <span class="text-2xl">🎮</span> Brincadeira Atual
+                </h3>
+                <div class="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 mb-4 backdrop-blur-sm border border-white/20">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
+                        <span class="text-lg font-medium text-white" id="currentGameName"></span>
+                        <span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-2 rounded-full text-sm font-bold inline-block w-fit" id="currentGamePoints"></span>
+                    </div>
+                    <p class="text-white/80 text-sm">👆 Clique no grupo vencedor para atribuir os pontos</p>
+                </div>
+                <div id="groupButtons" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            </div>
+
+            <!-- Ranking -->
+            <div class="simple-card p-8 mb-8">
+                <div class="text-center mb-8">
+                    <h2 class="extra-large-text text-gray-800 mb-6">
+                        🏆 Ranking Atual
+                    </h2>
+                    <div class="flex flex-col gap-4">
+                        <button onclick="undoLastScore()" id="undoBtn"
+                                class="big-button warning-btn disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized"
+                                disabled>
+                            ↶ DESFAZER ÚLTIMA PONTUAÇÃO
+                        </button>
+                        <button onclick="resetCompetition()"
+                                class="big-button danger-btn mobile-optimized">
+                            🔄 RESETAR COMPETIÇÃO
+                        </button>
+                    </div>
+                </div>
+                <div id="ranking" class="space-y-4"></div>
+            </div>
+
+            <!-- History -->
+            <div class="simple-card p-8">
+                <h2 class="extra-large-text text-gray-800 mb-8 text-center">
+                    📜 Histórico de Brincadeiras
+                </h2>
+                <div id="history" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCg4044onOSD2f7FL-NpuSkKg7UGXwLptE",
+            authDomain: "dinamicasj-3ae47.firebaseapp.com",
+            projectId: "dinamicasj-3ae47",
+            storageBucket: "dinamicasj-3ae47.firebasestorage.app",
+            messagingSenderId: "729201684473",
+            appId: "1:729201684473:web:22d21b399278d205375728",
+            measurementId: "G-J1JSMZE72D"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
+
+        // Make Firebase functions available globally
+        window.db = db;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.doc = doc;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.deleteDoc = deleteDoc;
+
+        // Update Firebase status
+        document.getElementById('firebaseStatus').className = 'firebase-status firebase-connected';
+        document.getElementById('firebaseStatus').innerHTML = '✅ Firebase Conectado';
+
+        // Auto-hide status after 3 seconds
+        setTimeout(() => {
+            document.getElementById('firebaseStatus').style.opacity = '0';
+        }, 3000);
+
+        console.log('Firebase initialized successfully!');
+    </script>
+
+    <script>
+        let groups = [];
+        let games = [];
+        let history = [];
+        let currentGameData = null;
+        let currentSelectedGroup = null;
+        let competitionId = null;
+
+        // Biblical Games Data
+        const biblicalPhrases = [
+            { text: "A fé sem obras é morta.", correct: true, reference: "Tiago 2:26" },
+            { text: "A voz do povo é a voz de Deus.", correct: false, reference: "frase popular" },
+            { text: "Tudo posso naquele que me fortalece.", correct: true, reference: "Filipenses 4:13" },
+            { text: "Deus ajuda quem cedo madruga.", correct: false, reference: "ditado popular" },
+            { text: "Há tempo para todo propósito debaixo do céu.", correct: true, reference: "Eclesiastes 3:1" },
+            { text: "Cada um colhe o que planta.", correct: true, reference: "Gálatas 6:7" },
+            { text: "Diga-me com quem andas e te direi quem és.", correct: false, reference: "ditado popular" },
+            { text: "O amor ao dinheiro é a raiz de todos os males.", correct: true, reference: "1 Timóteo 6:10" },
+            { text: "A caridade cobre uma multidão de pecados.", correct: true, reference: "1 Pedro 4:8" },
+            { text: "Não cai uma folha da árvore sem a vontade de Deus.", correct: false, reference: "frase popular" },
+            { text: "Honra teu pai e tua mãe.", correct: true, reference: "Êxodo 20:12" },
+            { text: "Deus escreve certo por linhas tortas.", correct: false, reference: "ditado popular" },
+            { text: "Eu e minha casa serviremos ao Senhor.", correct: true, reference: "Josué 24:15" },
+            { text: "Quem não trabalha, não deve comer.", correct: true, reference: "2 Tessalonicenses 3:10" },
+            { text: "Dar a César o que é de César e a Deus o que é de Deus.", correct: true, reference: "Mateus 22:21" },
+            { text: "A esperança é a última que morre.", correct: false, reference: "ditado popular" },
+            { text: "O Senhor é meu pastor, nada me faltará.", correct: true, reference: "Salmos 23:1" },
+            { text: "Os humilhados serão exaltados.", correct: true, reference: "Mateus 23:12" },
+            { text: "Faça por ti que eu te ajudarei.", correct: false, reference: "ditado popular" },
+            { text: "Sede sóbrios, vigiai, porque o diabo anda em derredor, como leão que ruge, buscando a quem possa tragar.", correct: true, reference: "1 Pedro 5:8" }
+        ];
+
+        const bibleQuestions = {
+            easy: [
+                { question: "Quem construiu a arca?", options: ["Moisés", "Noé", "Abraão"], correct: 1 },
+                { question: "Quem foi lançado na cova dos leões?", options: ["Davi", "Daniel", "José"], correct: 1 },
+                { question: "Qual era o nome do gigante derrotado por Davi?", options: ["Golias", "Sansão", "Esaú"], correct: 0 },
+                { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Elias", "Paulo"], correct: 0 },
+                { question: "Quem traiu Jesus por 30 moedas de prata?", options: ["Pedro", "Judas Iscariotes", "Tomé"], correct: 1 }
+            ],
+            medium: [
+                { question: "Quantos dias e noites choveu no dilúvio?", options: ["7", "40", "70"], correct: 1 },
+                { question: "Qual foi o primeiro milagre de Jesus?", options: ["Andar sobre o mar", "Transformar água em vinho", "Multiplicar os pães"], correct: 1 },
+                { question: "Qual era o nome da esposa de Abraão?", options: ["Sara", "Rebeca", "Raquel"], correct: 0 },
+                { question: "Quem escreveu a maioria das cartas do Novo Testamento?", options: ["Pedro", "Paulo", "João"], correct: 1 },
+                { question: "Quem orou e o fogo desceu do céu sobre o altar?", options: ["Elias", "Eliseu", "Moisés"], correct: 0 }
+            ],
+            hard: [
+                { question: "Qual o nome da mulher que matou Sísera com uma estaca?", options: ["Débora", "Jael", "Ester"], correct: 1 },
+                { question: "Quantos dias Daniel jejuou quando buscava entendimento da visão?", options: ["7", "21", "40"], correct: 1 },
+                { question: "Qual o nome do rei que viu a mão escrever na parede?", options: ["Nabucodonosor", "Belsazar", "Herodes"], correct: 1 },
+                { question: "Qual o nome do sumo sacerdote que condenou Jesus?", options: ["Anás", "Caifás", "Gamaliel"], correct: 1 },
+                { question: "Qual era o nome hebraico dos três jovens na fornalha?", options: ["Sadraque, Mesaque e Abede-Nego", "Hananias, Misael e Azarias", "Nadabe, Abiú e Eleazar"], correct: 1 }
+            ]
+        };
+
+        const bibleBooks = [
+            // Antigo Testamento
+            "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio",
+            "Josué", "Juízes", "Rute", "1 Samuel", "2 Samuel",
+            "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", "Esdras",
+            "Neemias", "Ester", "Jó", "Salmos", "Provérbios",
+            "Eclesiastes", "Cantares", "Isaías", "Jeremias", "Lamentações",
+            "Ezequiel", "Daniel", "Oséias", "Joel", "Amós",
+            "Obadias", "Jonas", "Miquéias", "Naum", "Habacuque",
+            "Sofonias", "Ageu", "Zacarias", "Malaquias",
+            // Novo Testamento
+            "Mateus", "Marcos", "Lucas", "João", "Atos",
+            "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios",
+            "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo",
+            "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago",
+            "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João",
+            "Judas", "Apocalipse"
+        ];
+
+        let currentPhraseIndex = 0;
+        let currentQuestionIndex = 0;
+        let currentLevel = 'easy';
+        let currentBibleIndex = 0;
+        let gameScores = { game1: 0, game2: 0, game3: 0, game4: 0 };
+
+        // Firebase Functions
+        async function saveCompetition() {
+            if (!window.db) {
+                alert('Firebase não está conectado!');
+                return;
+            }
+
+            const competitionName = document.getElementById('competitionName').value.trim();
+            if (!competitionName) {
+                alert('Por favor, digite o nome da competição antes de salvar!');
+                return;
+            }
+
+            try {
+                // Generate competition ID if not exists
+                if (!competitionId) {
+                    competitionId = competitionName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+                }
+
+                const competitionData = {
+                    id: competitionId,
+                    name: competitionName,
+                    groups: groups,
+                    history: history,
+                    createdAt: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                };
+
+                await window.setDoc(window.doc(window.db, 'competitions', competitionId), competitionData);
+                
+                alert(`✅ Competição "${competitionName}" salva com sucesso!\n\nID: ${competitionId}\n\nCompartilhe este ID com outros dispositivos para sincronizar os dados.`);
+                
+                // Enable save button for future updates
+                document.getElementById('saveBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                alert('❌ Erro ao salvar a competição. Tente novamente.');
+            }
+        }
+
+        async function loadCompetition() {
+            if (!window.db) {
+                alert('Firebase não está conectado!');
+                return;
+            }
+
+            const competitionIdInput = prompt('Digite o ID da competição que deseja carregar:');
+            if (!competitionIdInput) return;
+
+            try {
+                const docRef = window.doc(window.db, 'competitions', competitionIdInput.trim());
+                const docSnap = await window.getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Load competition data
+                    competitionId = data.id;
+                    groups = data.groups || [];
+                    history = data.history || [];
+                    
+                    // Update UI
+                    document.getElementById('competitionName').value = data.name;
+                    
+                    if (groups.length > 0) {
+                        // Switch to competition phase
+                        document.getElementById('setupPhase').classList.add('hidden');
+                        document.getElementById('competitionPhase').classList.remove('hidden');
+                        
+                        // Populate investigator group dropdown
+                        const investigatorSelect = document.getElementById('investigatorGroup');
+                        investigatorSelect.innerHTML = '<option value="">Selecione o grupo</option>';
+                        groups.forEach(group => {
+                            const option = document.createElement('option');
+                            option.value = group.id;
+                            option.textContent = group.name;
+                            investigatorSelect.appendChild(option);
+                        });
+                        
+                        // Create visitor inputs
+                        createVisitorInputs();
+                        
+                        // Update displays
+                        updateRanking();
+                        updateHistory();
+                        
+                        // Enable buttons
+                        document.getElementById('saveBtn').disabled = false;
+                        if (history.length > 0) {
+                            document.getElementById('undoBtn').disabled = false;
+                        }
+                    }
+                    
+                    alert(`✅ Competição "${data.name}" carregada com sucesso!\n\nÚltima atualização: ${new Date(data.lastUpdated).toLocaleString()}`);
+                    
+                } else {
+                    alert('❌ Competição não encontrada! Verifique o ID e tente novamente.');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar:', error);
+                alert('❌ Erro ao carregar a competição. Tente novamente.');
+            }
+        }
+
+        async function autoSave() {
+            if (competitionId && window.db && groups.length > 0) {
+                try {
+                    const competitionData = {
+                        id: competitionId,
+                        name: document.getElementById('competitionName').value.trim(),
+                        groups: groups,
+                        history: history,
+                        lastUpdated: new Date().toISOString()
+                    };
+
+                    await window.setDoc(window.doc(window.db, 'competitions', competitionId), competitionData, { merge: true });
+                    console.log('Auto-save successful');
+                } catch (error) {
+                    console.error('Auto-save failed:', error);
+                }
+            }
+        }
+
+        function generateGroupInputs() {
+            const count = parseInt(document.getElementById('groupCount').value);
+            const container = document.getElementById('groupInputs');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= count; i++) {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label class="block large-text text-gray-700 mb-3 font-semibold">Nome do Grupo ${i}</label>
+                    <input type="text" id="group${i}" placeholder="Ex: Águias, Leões..." 
+                           class="simple-input text-xl"
+                           onkeyup="checkGroupInputs()">
+                `;
+                container.appendChild(div);
+            }
+            checkGroupInputs();
+        }
+
+        function checkGroupInputs() {
+            const count = parseInt(document.getElementById('groupCount').value);
+            let allFilled = true;
+            
+            for (let i = 1; i <= count; i++) {
+                const input = document.getElementById(`group${i}`);
+                if (!input || !input.value.trim()) {
+                    allFilled = false;
+                    break;
+                }
+            }
+            
+            document.getElementById('startBtn').disabled = !allFilled;
+        }
+
+        function startCompetition() {
+            const competitionName = document.getElementById('competitionName').value.trim();
+            if (!competitionName) {
+                alert('Por favor, digite o nome da competição!');
+                return;
+            }
+
+            const count = parseInt(document.getElementById('groupCount').value);
+            groups = [];
+            
+            for (let i = 1; i <= count; i++) {
+                const name = document.getElementById(`group${i}`).value.trim();
+                groups.push({
+                    id: i,
+                    name: name,
+                    points: 0
+                });
+            }
+            
+            // Generate competition ID
+            competitionId = competitionName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+            
+            // Populate investigator group dropdown
+            const investigatorSelect = document.getElementById('investigatorGroup');
+            investigatorSelect.innerHTML = '<option value="">Selecione o grupo</option>';
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                investigatorSelect.appendChild(option);
+            });
+            
+            // Create visitor inputs for each group
+            createVisitorInputs();
+            
+            document.getElementById('setupPhase').classList.add('hidden');
+            document.getElementById('competitionPhase').classList.remove('hidden');
+            document.getElementById('saveBtn').disabled = false;
+            
+            updateRanking();
+            
+            // Auto-save initial setup
+            autoSave();
+        }
+
+        function createVisitorInputs() {
+            const container = document.getElementById('visitorInputs');
+            container.innerHTML = '';
+            
+            groups.forEach(group => {
+                const div = document.createElement('div');
+                div.className = 'simple-card p-4';
+                div.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <label class="large-text text-gray-700 font-semibold flex-1">
+                            ${group.name}:
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg text-gray-600">Visitantes:</span>
+                            <input type="number" id="visitors-${group.id}" value="0" min="0" max="50"
+                                   class="simple-input text-center text-xl font-bold w-24">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addVisitorPoints() {
+            let totalVisitors = 0;
+            let visitorDetails = [];
+            
+            groups.forEach(group => {
+                const visitorInput = document.getElementById(`visitors-${group.id}`);
+                const visitorCount = parseInt(visitorInput.value) || 0;
+                
+                if (visitorCount > 0) {
+                    group.points += visitorCount;
+                    totalVisitors += visitorCount;
+                    visitorDetails.push(`${group.name}: ${visitorCount} visitantes`);
+                    
+                    // Add to history
+                    history.push({
+                        game: "👥 Pontos de Visitantes",
+                        winner: group.name,
+                        points: visitorCount,
+                        timestamp: new Date().toLocaleTimeString()
+                    });
+                }
+                
+                // Reset input
+                visitorInput.value = '0';
+            });
+            
+            if (totalVisitors > 0) {
+                alert(`Pontos de visitantes adicionados!\n\n${visitorDetails.join('\n')}\n\nTotal: ${totalVisitors} visitantes = ${totalVisitors} pontos`);
+                
+                document.getElementById('undoBtn').disabled = false;
+                updateRanking();
+                updateHistory();
+                autoSave(); // Auto-save after adding points
+            } else {
+                alert('Nenhum visitante foi registrado!');
+            }
+        }
+
+        function startBiblicalGame(gameNumber) {
+            // Show group selection modal
+            showGroupSelectionModal(gameNumber);
+        }
+
+        function showGroupSelectionModal(gameNumber) {
+            const gameNames = {
+                1: "📖 Está escrito... ou não está?",
+                2: "🎤 Show da Bíblia", 
+                3: "🐑 Quem é o Pastor?",
+                4: "📚 Índice da Bíblia"
+            };
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="simple-card p-8 max-w-lg w-full">
+                    <h3 class="extra-large-text text-gray-800 mb-6 text-center">
+                        ${gameNames[gameNumber]}
+                    </h3>
+                    <p class="large-text text-gray-600 text-center mb-8">
+                        Selecione qual grupo vai participar:
+                    </p>
+                    <div class="space-y-4 mb-8">
+                        ${groups.map(group => `
+                            <button onclick="selectGroupForGame(${gameNumber}, ${group.id})" 
+                                    class="w-full big-button primary-btn mobile-optimized">
+                                ${group.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <button onclick="closeGroupSelectionModal()" 
+                            class="w-full big-button" style="background: #6b7280; color: white;">
+                        ❌ CANCELAR
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function selectGroupForGame(gameNumber, groupId) {
+            const selectedGroup = groups.find(g => g.id === groupId);
+            currentSelectedGroup = selectedGroup;
+            
+            closeGroupSelectionModal();
+            
+            // Hide all games first
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`game${i}`).classList.add('hidden');
+            }
+            
+            // Show selected game
+            document.getElementById(`game${gameNumber}`).classList.remove('hidden');
+            
+            // Add group indicator to game header
+            const gameElement = document.getElementById(`game${gameNumber}`);
+            const existingIndicator = gameElement.querySelector('.group-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            const groupIndicator = document.createElement('div');
+            groupIndicator.className = 'group-indicator bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 rounded-xl p-3 mb-4';
+            groupIndicator.innerHTML = `
+                <div class="flex items-center justify-center gap-2">
+                    <span class="text-2xl">👥</span>
+                    <span class="text-white font-semibold">Grupo Participante: ${selectedGroup.name}</span>
+                </div>
+            `;
+            
+            const gameHeader = gameElement.querySelector('h3');
+            gameHeader.parentNode.insertBefore(groupIndicator, gameHeader.nextSibling);
+            
+            // Initialize game based on number
+            switch(gameNumber) {
+                case 1:
+                    initGame1();
+                    break;
+                case 2:
+                    initGame2();
+                    break;
+                case 3:
+                    initGame3();
+                    break;
+                case 4:
+                    initGame4();
+                    break;
+            }
+        }
+
+        function closeGroupSelectionModal() {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function initGame1() {
+            currentPhraseIndex = 0;
+            gameScores.game1 = 0;
+            showNextPhrase();
+        }
+
+        function showNextPhrase() {
+            if (currentPhraseIndex >= biblicalPhrases.length) {
+                endGame1();
+                return;
+            }
+            
+            const phrase = biblicalPhrases[currentPhraseIndex];
+            document.getElementById('currentPhrase').textContent = phrase.text;
+            document.getElementById('phraseCounter').textContent = currentPhraseIndex + 1;
+            document.getElementById('phraseResult').classList.add('hidden');
+        }
+
+        function answerPhrase(userAnswer) {
+            const phrase = biblicalPhrases[currentPhraseIndex];
+            const isCorrect = userAnswer === phrase.correct;
+            
+            if (isCorrect) {
+                gameScores.game1++;
+            }
+            
+            const resultDiv = document.getElementById('phraseResult');
+            resultDiv.className = `mt-4 p-3 rounded-xl ${isCorrect ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-2xl">${isCorrect ? '✅' : '❌'}</span>
+                    <span class="text-white font-semibold">${isCorrect ? 'Correto!' : 'Incorreto!'}</span>
+                </div>
+                <p class="text-white/90 text-sm">
+                    ${phrase.correct ? '✔ Está na Bíblia' : '❌ Não está na Bíblia'} — ${phrase.reference}
+                </p>
+            `;
+            resultDiv.classList.remove('hidden');
+            
+            currentPhraseIndex++;
+            setTimeout(() => {
+                showNextPhrase();
+            }, 3000);
+        }
+
+        function initGame2() {
+            currentQuestionIndex = 0;
+            currentLevel = 'easy';
+            gameScores.game2 = 0;
+            showNextQuestion();
+        }
+
+        function showNextQuestion() {
+            const levels = ['easy', 'medium', 'hard'];
+            const questionsPerLevel = 5;
+            const totalQuestions = levels.length * questionsPerLevel;
+            
+            if (currentQuestionIndex >= totalQuestions) {
+                endGame2();
+                return;
+            }
+            
+            const levelIndex = Math.floor(currentQuestionIndex / questionsPerLevel);
+            const questionInLevel = currentQuestionIndex % questionsPerLevel;
+            currentLevel = levels[levelIndex];
+            
+            const question = bibleQuestions[currentLevel][questionInLevel];
+            
+            document.getElementById('currentLevel').textContent = 
+                currentLevel === 'easy' ? 'Fácil' : 
+                currentLevel === 'medium' ? 'Médio' : 'Difícil';
+            document.getElementById('questionCounter').textContent = currentQuestionIndex + 1;
+            document.getElementById('currentQuestion').textContent = question.question;
+            
+            const optionsContainer = document.getElementById('questionOptions');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-left px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all mobile-optimized';
+                button.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
+                button.onclick = () => answerQuestion(index);
+                optionsContainer.appendChild(button);
+            });
+            
+            document.getElementById('questionResult').classList.add('hidden');
+        }
+
+        function answerQuestion(selectedIndex) {
+            const levels = ['easy', 'medium', 'hard'];
+            const questionsPerLevel = 5;
+            const levelIndex = Math.floor(currentQuestionIndex / questionsPerLevel);
+            const questionInLevel = currentQuestionIndex % questionsPerLevel;
+            const currentLevelName = levels[levelIndex];
+            
+            const question = bibleQuestions[currentLevelName][questionInLevel];
+            const isCorrect = selectedIndex === question.correct;
+            
+            if (isCorrect) {
+                gameScores.game2++;
+            }
+            
+            const resultDiv = document.getElementById('questionResult');
+            resultDiv.className = `mt-4 p-3 rounded-xl ${isCorrect ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-2xl">${isCorrect ? '✅' : '❌'}</span>
+                    <span class="text-white font-semibold">${isCorrect ? 'Correto!' : 'Incorreto!'}</span>
+                </div>
+                <p class="text-white/90 text-sm">
+                    Resposta correta: ${String.fromCharCode(65 + question.correct)}) ${question.options[question.correct]}
+                </p>
+            `;
+            resultDiv.classList.remove('hidden');
+            
+            currentQuestionIndex++;
+            setTimeout(() => {
+                showNextQuestion();
+            }, 3000);
+        }
+
+        function initGame3() {
+            gameScores.game3 = 0;
+        }
+
+        function initGame4() {
+            gameScores.game4 = 0;
+            createBibleBooksList();
+            updateBibleScore();
+        }
+
+        function createBibleBooksList() {
+            const oldTestament = bibleBooks.slice(0, 39);
+            const newTestament = bibleBooks.slice(39);
+            
+            // Create Old Testament books
+            const oldContainer = document.getElementById('oldTestamentBooks');
+            oldContainer.innerHTML = '';
+            oldTestament.forEach((book, index) => {
+                const button = document.createElement('button');
+                button.id = `book-${index}`;
+                button.className = 'book-button bg-white/10 border border-white/20 text-white px-3 py-2 rounded-lg text-sm hover:bg-white/20 transition-all mobile-optimized';
+                button.textContent = book;
+                button.onclick = () => toggleBook(index, button);
+                oldContainer.appendChild(button);
+            });
+            
+            // Create New Testament books
+            const newContainer = document.getElementById('newTestamentBooks');
+            newContainer.innerHTML = '';
+            newTestament.forEach((book, index) => {
+                const globalIndex = index + 39;
+                const button = document.createElement('button');
+                button.id = `book-${globalIndex}`;
+                button.className = 'book-button bg-white/10 border border-white/20 text-white px-3 py-2 rounded-lg text-sm hover:bg-white/20 transition-all mobile-optimized';
+                button.textContent = book;
+                button.onclick = () => toggleBook(globalIndex, button);
+                newContainer.appendChild(button);
+            });
+        }
+
+        function toggleBook(bookIndex, buttonElement) {
+            if (buttonElement.classList.contains('book-correct')) {
+                // Remove point if unchecking
+                buttonElement.classList.remove('book-correct');
+                buttonElement.classList.add('bg-white/10', 'border-white/20');
+                buttonElement.classList.remove('bg-green-500/30', 'border-green-500/50');
+                gameScores.game4--;
+            } else {
+                // Add point if checking
+                buttonElement.classList.add('book-correct');
+                buttonElement.classList.remove('bg-white/10', 'border-white/20');
+                buttonElement.classList.add('bg-green-500/30', 'border-green-500/50');
+                gameScores.game4++;
+            }
+            
+            updateBibleScore();
+        }
+
+        function updateBibleScore() {
+            document.getElementById('currentScore').textContent = `${gameScores.game4} pontos`;
+            
+            // Update progress bar
+            const progress = (gameScores.game4 / bibleBooks.length) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function endGame1() {
+            const score = gameScores.game1;
+            const percentage = Math.round((score / biblicalPhrases.length) * 100);
+            
+            alert(`Brincadeira finalizada!\n\nGrupo: ${currentSelectedGroup.name}\nAcertos: ${score}/${biblicalPhrases.length}\nPercentual: ${percentage}%`);
+            
+            // Automatically assign points to the selected group
+            currentSelectedGroup.points += 20;
+            
+            history.push({
+                game: "📖 Está escrito... ou não está?",
+                winner: currentSelectedGroup.name,
+                points: 20,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            document.getElementById('undoBtn').disabled = false;
+            document.getElementById('game1').classList.add('hidden');
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after game completion
+        }
+
+        function endGame2() {
+            const score = gameScores.game2;
+            const percentage = Math.round((score / 15) * 100);
+            
+            alert(`Show da Bíblia finalizado!\n\nGrupo: ${currentSelectedGroup.name}\nAcertos: ${score}/15\nPercentual: ${percentage}%`);
+            
+            // Automatically assign points to the selected group
+            currentSelectedGroup.points += 15;
+            
+            history.push({
+                game: "🎤 Show da Bíblia",
+                winner: currentSelectedGroup.name,
+                points: 15,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            document.getElementById('undoBtn').disabled = false;
+            document.getElementById('game2').classList.add('hidden');
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after game completion
+        }
+
+        function endGame3() {
+            const investigatorGroupId = document.getElementById('investigatorGroup').value;
+            const points = parseInt(document.getElementById('shepherdPoints').value);
+            
+            if (!investigatorGroupId) {
+                alert('Por favor, selecione o grupo investigador!');
+                return;
+            }
+            
+            const investigatorGroup = groups.find(g => g.id == investigatorGroupId);
+            investigatorGroup.points += points;
+            
+            history.push({
+                game: "🐑 Quem é o Pastor do Meu Rebanho?",
+                winner: investigatorGroup.name,
+                points: points,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            document.getElementById('undoBtn').disabled = false;
+            document.getElementById('game3').classList.add('hidden');
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after game completion
+            
+            alert(`Brincadeira finalizada!\n\n${investigatorGroup.name} conquistou ${points} pontos!`);
+        }
+
+        function endGame4() {
+            const score = gameScores.game4;
+            const percentage = Math.round((score / bibleBooks.length) * 100);
+            
+            alert(`Índice da Bíblia finalizado!\n\nGrupo: ${currentSelectedGroup.name}\nLivros corretos: ${score}/${bibleBooks.length}\nPercentual: ${percentage}%\nPontos conquistados: ${score}`);
+            
+            // Automatically assign points to the selected group (1 point per correct book)
+            currentSelectedGroup.points += score;
+            
+            history.push({
+                game: "📚 Índice da Bíblia",
+                winner: currentSelectedGroup.name,
+                points: score,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            document.getElementById('undoBtn').disabled = false;
+            document.getElementById('game4').classList.add('hidden');
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after game completion
+        }
+
+        function showGroupSelection() {
+            // Hide current game
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`game${i}`).classList.add('hidden');
+            }
+            
+            // Show group selection
+            document.getElementById('currentGameName').textContent = currentGameData.name;
+            document.getElementById('currentGamePoints').textContent = `+${currentGameData.points} pontos`;
+            document.getElementById('currentGame').classList.remove('hidden');
+            
+            // Create group buttons
+            const container = document.getElementById('groupButtons');
+            container.innerHTML = '';
+            
+            groups.forEach(group => {
+                const button = document.createElement('button');
+                button.className = 'bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg mobile-optimized';
+                button.textContent = group.name;
+                button.onclick = () => assignPoints(group.id);
+                container.appendChild(button);
+            });
+        }
+
+        function createGame() {
+            const name = document.getElementById('gameName').value.trim();
+            const points = parseInt(document.getElementById('gamePoints').value);
+            
+            if (!name) {
+                alert('Por favor, digite o nome da brincadeira');
+                return;
+            }
+            
+            currentGameData = { name, points };
+            
+            document.getElementById('currentGameName').textContent = name;
+            document.getElementById('currentGamePoints').textContent = `+${points} pontos`;
+            document.getElementById('currentGame').classList.remove('hidden');
+            
+            // Create group buttons
+            const container = document.getElementById('groupButtons');
+            container.innerHTML = '';
+            
+            groups.forEach(group => {
+                const button = document.createElement('button');
+                button.className = 'bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 font-semibold text-lg shadow-lg mobile-optimized';
+                button.textContent = group.name;
+                button.onclick = () => assignPoints(group.id);
+                container.appendChild(button);
+            });
+            
+            // Clear inputs
+            document.getElementById('gameName').value = '';
+            document.getElementById('gamePoints').value = '10';
+        }
+
+        function assignPoints(groupId) {
+            if (!currentGameData) return;
+            
+            const group = groups.find(g => g.id === groupId);
+            group.points += currentGameData.points;
+            
+            // Add to history
+            history.push({
+                game: currentGameData.name,
+                winner: group.name,
+                points: currentGameData.points,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            // Hide current game
+            document.getElementById('currentGame').classList.add('hidden');
+            currentGameData = null;
+            
+            // Enable undo button
+            document.getElementById('undoBtn').disabled = false;
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after assigning points
+        }
+
+        function updateRanking() {
+            const sortedGroups = [...groups].sort((a, b) => b.points - a.points);
+            const container = document.getElementById('ranking');
+            container.innerHTML = '';
+            
+            sortedGroups.forEach((group, index) => {
+                const div = document.createElement('div');
+                div.className = 'simple-card p-6 flex items-center justify-between';
+                
+                let trophy = '';
+                let bgColor = '';
+                
+                if (index === 0) {
+                    bgColor = 'background: linear-gradient(135deg, #fbbf24, #f59e0b);';
+                    trophy = '<span class="text-5xl">🥇</span>';
+                } else if (index === 1) {
+                    bgColor = 'background: linear-gradient(135deg, #d1d5db, #9ca3af);';
+                    trophy = '<span class="text-5xl">🥈</span>';
+                } else if (index === 2) {
+                    bgColor = 'background: linear-gradient(135deg, #fb923c, #ea580c);';
+                    trophy = '<span class="text-5xl">🥉</span>';
+                } else {
+                    bgColor = 'background: #f8fafc;';
+                    trophy = `<span class="text-3xl font-bold text-gray-600 bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center">${index + 1}º</span>`;
+                }
+                
+                div.style = bgColor;
+                div.innerHTML = `
+                    <div class="flex items-center gap-6">
+                        ${trophy}
+                        <span class="large-text font-bold text-gray-800">${group.name}</span>
+                    </div>
+                    <span class="text-4xl font-bold text-gray-800">${group.points} pts</span>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        function updateHistory() {
+            const container = document.getElementById('history');
+            container.innerHTML = '';
+            
+            if (history.length === 0) {
+                container.innerHTML = '<p class="large-text text-gray-500 text-center py-8">🎯 Nenhuma brincadeira realizada ainda</p>';
+                return;
+            }
+            
+            [...history].reverse().forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'simple-card p-6';
+                div.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div class="large-text font-bold text-gray-800">${entry.game}</div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-lg text-gray-600">🏆 Vencedor: </span>
+                                <span class="text-lg font-semibold text-blue-600">${entry.winner}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-green-600">+${entry.points} pts</div>
+                                <div class="text-sm text-gray-500">${entry.timestamp}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function undoLastScore() {
+            if (history.length === 0) return;
+            
+            const lastEntry = history.pop();
+            const group = groups.find(g => g.name === lastEntry.winner);
+            group.points -= lastEntry.points;
+            
+            if (history.length === 0) {
+                document.getElementById('undoBtn').disabled = true;
+            }
+            
+            updateRanking();
+            updateHistory();
+            autoSave(); // Auto-save after undo
+        }
+
+        function resetCompetition() {
+            if (confirm('Tem certeza que deseja resetar toda a competição? Todos os dados serão perdidos.')) {
+                groups.forEach(group => group.points = 0);
+                history = [];
+                document.getElementById('undoBtn').disabled = true;
+                document.getElementById('currentGame').classList.add('hidden');
+                currentGameData = null;
+                updateRanking();
+                updateHistory();
+                autoSave(); // Auto-save after reset
+            }
+        }
+
+        // Initialize
+        generateGroupInputs();
+
+        // Make functions available globally for onclick handlers
+        window.saveCompetition = saveCompetition;
+        window.loadCompetition = loadCompetition;
+        window.generateGroupInputs = generateGroupInputs;
+        window.checkGroupInputs = checkGroupInputs;
+        window.startCompetition = startCompetition;
+        window.addVisitorPoints = addVisitorPoints;
+        window.startBiblicalGame = startBiblicalGame;
+        window.selectGroupForGame = selectGroupForGame;
+        window.closeGroupSelectionModal = closeGroupSelectionModal;
+        window.answerPhrase = answerPhrase;
+        window.endGame1 = endGame1;
+        window.answerQuestion = answerQuestion;
+        window.endGame2 = endGame2;
+        window.endGame3 = endGame3;
+        window.toggleBook = toggleBook;
+        window.endGame4 = endGame4;
+        window.createGame = createGame;
+        window.assignPoints = assignPoints;
+        window.undoLastScore = undoLastScore;
+        window.resetCompetition = resetCompetition;
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9785bedd32c5ddeb',t:'MTc1NjczOTk2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
