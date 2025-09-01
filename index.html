@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Competição por Grupos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/tailwindcss@3.4.0/lib/index.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
         body { 
@@ -967,6 +978,8 @@
             showNextPhrase();
         }
 
+        window.initGame1 = initGame1;
+
         function showNextPhrase() {
             if (currentPhraseIndex >= biblicalPhrases.length) {
                 endGame1();
@@ -1012,6 +1025,8 @@
             gameScores.game2 = 0;
             showNextQuestion();
         }
+
+        window.initGame2 = initGame2;
 
         function showNextQuestion() {
             const levels = ['easy', 'medium', 'hard'];
@@ -1086,11 +1101,15 @@
             gameScores.game3 = 0;
         }
 
+        window.initGame3 = initGame3;
+
         function initGame4() {
             gameScores.game4 = 0;
             createBibleBooksList();
             updateBibleScore();
         }
+
+        window.initGame4 = initGame4;
 
         function createBibleBooksList() {
             const oldTestament = bibleBooks.slice(0, 39);
@@ -1443,17 +1462,21 @@
         window.startBiblicalGame = startBiblicalGame;
         window.selectGroupForGame = selectGroupForGame;
         window.closeGroupSelectionModal = closeGroupSelectionModal;
+        window.showNextPhrase = showNextPhrase;
         window.answerPhrase = answerPhrase;
         window.endGame1 = endGame1;
+        window.showNextQuestion = showNextQuestion;
         window.answerQuestion = answerQuestion;
         window.endGame2 = endGame2;
         window.endGame3 = endGame3;
+        window.createBibleBooksList = createBibleBooksList;
         window.toggleBook = toggleBook;
+        window.updateBibleScore = updateBibleScore;
         window.endGame4 = endGame4;
         window.createGame = createGame;
         window.assignPoints = assignPoints;
         window.undoLastScore = undoLastScore;
         window.resetCompetition = resetCompetition;
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9785bedd32c5ddeb',t:'MTc1NjczOTk2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9788013b907ed97a',t:'MTc1Njc2MzY1Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
